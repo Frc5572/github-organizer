@@ -1,4 +1,4 @@
-from github.GithubObject import NotSet, is_undefined
+from github.GithubObject import NotSet
 
 from models.gh import OrganizerOrganization, OrganizerRepository
 from services.github import gh

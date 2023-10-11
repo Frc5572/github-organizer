@@ -3,7 +3,7 @@ from copy import copy
 import yaml
 from github import Branch, Organization, Repository
 from github.GithubException import GithubException
-from github.GithubObject import NotSet, is_undefined
+from github.GithubObject import NotSet
 
 DEFAULT_LABEL_COLOR = "000000"
 CACHE_SHORT = 5 * 60  # Five minutes
