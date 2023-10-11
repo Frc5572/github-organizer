@@ -6,9 +6,6 @@ import click
 import yaml
 
 from models.gh import OrganizerOrganization
-
-# import models.gh
-# import tasks.github
 from services.github import gh
 from services.tasks import (
     update_repo_branch_protection,
