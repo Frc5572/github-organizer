@@ -1,17 +1,17 @@
 import base64
 import datetime
-# import githuborganizer.config as config
-# from githuborganizer import cache
-# from github3apps import GithubApp
-from github import Organization, Repository, Branch
-from github.GithubObject import is_undefined, NotSet
-from github.GithubException import GithubException
 import json
-import requests
-import yaml
 import os
 from copy import copy
 
+import requests
+import yaml
+# import githuborganizer.config as config
+# from githuborganizer import cache
+# from github3apps import GithubApp
+from github import Branch, Organization, Repository
+from github.GithubException import GithubException
+from github.GithubObject import NotSet, is_undefined
 
 DEFAULT_LABEL_COLOR = '000000'
 CACHE_SHORT = 5 * 60 # Five minutes

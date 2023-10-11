@@ -1,6 +1,7 @@
-from services.github import gh
+from github.GithubObject import NotSet, is_undefined
+
 from models.gh import OrganizerOrganization, OrganizerRepository
-from github.GithubObject import is_undefined, NotSet
+from services.github import gh
 
 
 def update_repository_settings(org_name, repo_name):
