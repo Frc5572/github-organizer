@@ -1,0 +1,9 @@
+{
+  "recommendations": [
+    "editorconfig.editorconfig",
+    "eamodio.gitlens",
+    "ms-python.vscode-pylance",
+    "ms-python.autopep8",
+    "ms-vscode-remote.vscode-remote-extensionpack"
+  ]
+}
