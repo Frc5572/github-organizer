@@ -147,7 +147,7 @@ class OrganizerRepository():
             return
 
         # If this repo is a fork then leave it alone.
-        if self.ghrep.source:
+        if self.repository.source:
             return
 
         for branch in org_settings['branches']:
@@ -156,16 +156,19 @@ class OrganizerRepository():
                 continue
             if not settings["default"]:
                 continue
-            if self.ghrep.default_branch == branch:
+            if self.repository.default_branch == branch:
                 return
 
             # Fails if branch exists, creates it from current default branch otherwise.
             # Saves us at least one API call to see if the branch exists
+            # try:
+            #     self.create_branch(branch)
+            # except:
+            #     pass
             try:
-                self.create_branch(branch)
+                self.repository.edit(default_branch=branch)
             except:
                 pass
-            return self.ghrep.edit(self.name, default_branch=branch)
 
 
 
@@ -368,8 +371,8 @@ class OrganizerRepository():
         return False
 
     def create_branch(self, branch_name):
-        current_default_branch = self.ghrep.branch(self.ghrep.default_branch)
-        self.ghrep.create_branch_ref(branch_name, current_default_branch.latest_sha())
+        current_default_branch = self.repository.get_branch(self.repository.default_branch)
+        self.repository.create_branch_ref(branch_name, current_default_branch.latest_sha())
     
     def branch_protection(
         self,
@@ -496,7 +499,6 @@ class OrganizerProject:
             yield column
 
     def get_column_by_name(self, name):
-        @cache.cache(expire=CACHE_MEDIUM)
         def get_column_id_from_name(project, name):
             for column in project.get_columns():
                 if column.name == name:

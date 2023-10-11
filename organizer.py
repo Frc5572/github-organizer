@@ -3,7 +3,7 @@ import click
 # import tasks.github
 from services.github import gh
 from models.gh import OrganizerOrganization
-from services.tasks import update_repository_settings, update_repository_labels, update_repository_security_settings, update_repo_branch_protection
+from services.tasks import update_repository_settings, update_repository_labels, update_repository_security_settings, update_repo_branch_protection, update_repository_default_branch
 import yaml
 import random
 import string
@@ -115,16 +115,27 @@ def list_repos(organization):
 #     click.echo('%s\t%s' % (ghproject.id, ghproject.name))
 
 
-@cli.command(short_help="Update the branch protection rules for an entire org or single repository")
+@cli.command(short_help="Update the branch protection settings for an entire org or single repository")
 @click.argument('organization')
 @click.argument('repository', required=False)
 def update_branch_protection(organization, repository):
     org = OrganizerOrganization(gh.get_organization(organization))
     if repository:
-        # repo = org.get_repository(repository)
-        update_repo_branch_protection(organization, repository)
+        update_repo_branch_protection(org, repository)
     else:
-        pass
+        for repo in org.get_repositories():
+            update_repo_branch_protection(repo)
+
+@cli.command(short_help="Update the default branch settings for an entire org or single repository")
+@click.argument('organization')
+@click.argument('repository', required=False)
+def default_branch(organization, repository):
+    org = OrganizerOrganization(gh.get_organization(organization))
+    if repository:
+        update_repository_default_branch(org, repository)
+    # else:
+    #     for repo in org.get_repositories():
+    #         update_repository_default_branch(repo)
 
 
 # @cli.command(short_help="")

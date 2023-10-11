@@ -22,16 +22,17 @@ def update_repository_security_settings(org_name, repo_name):
     repo.update_security_scanning()
 
 
-def update_repo_branch_protection(org_name, repo_name):
-    print(f"Updating the branch protection settings of repository {org_name}/{repo_name}")
-    org = OrganizerOrganization(gh.get_organization(org_name))
+def update_repo_branch_protection(org: OrganizerOrganization, repo_name: str):
+    print(f"Updating the branch protection settings of repository {org.name}/{repo_name}")
     repo = org.get_repository(repo_name)
+    update_repo_branch_protection(repo)
+
+def update_repo_branch_protection(repo: OrganizerRepository):
     settings = repo.get_organizer_settings()
     if 'branches' not in settings:
         return
     for branch in settings['branches']:
         update_branch_protection(repo, branch)
-
 
 def update_branch_protection(repo: OrganizerRepository, branch_name: str):
     if 'branches' not in repo._settings:
@@ -62,8 +63,7 @@ def update_branch_protection(repo: OrganizerRepository, branch_name: str):
     )
 
 
-# def update_repository_default_branch(org_name, repo_name):
-#     ghclient = get_organization_client(org_name)
-#     org = gh.Organization(ghclient, org_name)
-#     repo = org.get_repository(repo_name)
-#     repo.update_default_branch()
+def update_repository_default_branch(org: OrganizerOrganization, repo_name: str):
+    print(f"Updating the default branch settings of repository {org.name}/{repo_name}")
+    repo = org.get_repository(repo_name)
+    repo.update_default_branch()
