@@ -1,7 +1,7 @@
 import click
 import yaml
 
-from models.gh import OrganizerOrganization
+from models.gh import OrganizerOrganization, update_global_config
 from services.github import gh
 from services.tasks import (
     update_org_repo_branch_protection,
@@ -26,7 +26,7 @@ def cli(ctx, config):
         print(ctx.parent.get_help())
     if config:
         with open(config, "r") as file:
-            ctx.global_config = yaml.safe_load(file)
+            update_global_config(yaml.safe_load(file))
 
 
 @cli.command(short_help="List the settings for an organization or repository")

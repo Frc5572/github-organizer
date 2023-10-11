@@ -9,8 +9,11 @@ DEFAULT_LABEL_COLOR = "000000"
 CACHE_SHORT = 5 * 60  # Five minutes
 CACHE_MEDIUM = 60 * 60  # One hour
 CACHE_LONG = 24 * 60 * 60  # One day
-global_config = None
+GLOBAL_CONFIG = None
 
+def update_global_config(config: dict):
+    global GLOBAL_CONFIG
+    GLOBAL_CONFIG = config
 
 def issue_has_projects(installation, organization, repository, issue):
     query = """
@@ -76,9 +79,10 @@ class OrganizerOrganization:
             return None
 
     def get_configuration(self):
-        if global_config is not None:
-            self.configuration = global_config
-        if self.configuration is not None:
+        if GLOBAL_CONFIG is not None:
+            self.configuration = GLOBAL_CONFIG
+            return GLOBAL_CONFIG
+        elif self.configuration is not None:
             return self.configuration
         try:
             config_repository = self.org.get_repo(".github")
