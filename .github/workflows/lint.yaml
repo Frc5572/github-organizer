@@ -16,6 +16,7 @@ jobs:
         with:
           reviewdog_version: latest
       - name: Run reviewdog
+        if: always()
         env:
           REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -32,6 +33,7 @@ jobs:
         with:
           reviewdog_version: latest
       - name: Run reviewdog
+        if: always()
         env:
           REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -48,6 +50,7 @@ jobs:
         with:
           reviewdog_version: latest
       - name: Run reviewdog
+        if: always()
         env:
           REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
