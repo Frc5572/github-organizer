@@ -8,27 +8,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/workflows/shared.yaml
+      - uses: ./.github/actions/python-setup
       - name: Run iSort
         run: isort --extend-skip .venv/ --check-only .
   black:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/workflows/shared.yaml
+      - uses: ./.github/actions/python-setup
       - name: Run Black
         run: black --check --extend-exclude ".venv/" .
   flake8:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/workflows/shared.yaml
+      - uses: ./.github/actions/python-setup
       - name: Run Flake8
         run: flake8 --extend-exclude .venv/ .
   pylint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/workflows/shared.yaml
+      - uses: ./.github/actions/python-setup
       - name: Run PyLint
         run: pylint $(find -type f -name "*.py" ! -path "**/.venv/**")
