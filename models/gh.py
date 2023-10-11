@@ -222,7 +222,7 @@ class OrganizerRepository:
 
         if not self.organization.configuration:
             return False
-        elif "repositories" not in self.organization.configuration:
+        if "repositories" not in self.organization.configuration:
             """Convert from the old style configuration to the current version"""
             settings = copy(self.organization.configuration)
             settings["merges"] = {}
@@ -311,23 +311,23 @@ class OrganizerRepository:
                     config_label.get("description", NotSet),
                 )
 
-    def update_issues(self):
-        organizer_settings = self.get_organizer_settings()
-        if not organizer_settings:
-            return False
-        if "auto_assign_project" not in organizer_settings["issues"]:
-            return False
+    # def update_issues(self):
+    #     organizer_settings = self.get_organizer_settings()
+    #     if not organizer_settings:
+    #         return False
+    #     if "auto_assign_project" not in organizer_settings["issues"]:
+    #         return False
 
-        issue_config = organizer_settings["issues"]
+    #     issue_config = organizer_settings["issues"]
 
-        if "organization" in issue_config:
-            project = self.organization.ghorg.project(issue_config["name"])
-        else:
-            project = self.ghrep.project(issue_config["name"])
-        project_column = project.column(issue_config["column"])
+    #     if "organization" in issue_config:
+    #         project = self.organization.ghorg.project(issue_config["name"])
+    #     else:
+    #         project = self.ghrep.project(issue_config["name"])
+    #     project_column = project.column(issue_config["column"])
 
-        for issue in self.ghrep.issues(state="open", sort="created", direction="asc"):
-            project_column.create_card_with_issue(issue)
+    #     for issue in self.ghrep.issues(state="open", sort="created", direction="asc"):
+    #         project_column.create_card_with_issue(issue)
 
     def update_security_scanning(self):
         organizer_settings = self.get_organizer_settings()
@@ -445,7 +445,7 @@ class OrganizerRepository:
         allow_fork_syncing: bool = NotSet,
         block_creations: bool = NotSet,
         required_conversation_resolution: bool = NotSet,
-        allow_deletions: bool = False,
+        # allow_deletions: bool = False,
     ):
         # required_status_checks
         # - strict - boolean

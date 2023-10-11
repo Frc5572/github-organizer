@@ -72,7 +72,7 @@ def update_branch_protection(repo: OrganizerRepository, branch_name: str):
         required_conversation_resolution=bsettings.get(
             "required_conversation_resolution", NotSet
         ),
-        allow_deletions=bsettings.get("allow_deletions", False),
+        # allow_deletions=bsettings.get("allow_deletions", False),
     )
 
 
