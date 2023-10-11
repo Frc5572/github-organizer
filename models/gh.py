@@ -1,15 +1,6 @@
-import base64
-import datetime
-import json
-import os
 from copy import copy
 
-import requests
 import yaml
-
-# import githuborganizer.config as config
-# from githuborganizer import cache
-# from github3apps import GithubApp
 from github import Branch, Organization, Repository
 from github.GithubException import GithubException
 from github.GithubObject import NotSet, is_undefined
@@ -18,6 +9,7 @@ DEFAULT_LABEL_COLOR = "000000"
 CACHE_SHORT = 5 * 60  # Five minutes
 CACHE_MEDIUM = 60 * 60  # One hour
 CACHE_LONG = 24 * 60 * 60  # One day
+global_config = None
 
 
 def issue_has_projects(installation, organization, repository, issue):
@@ -80,10 +72,12 @@ class OrganizerOrganization:
         try:
             repo = self.org.get_repo(name)
             return OrganizerRepository(self, repo)
-        except:
+        except Exception:
             return None
 
     def get_configuration(self):
+        if global_config is not None:
+            self.configuration = global_config
         if self.configuration is not None:
             return self.configuration
         try:
@@ -91,13 +85,13 @@ class OrganizerOrganization:
             return yaml.safe_load(
                 config_repository.get_contents("organizer.yaml").decoded_content
             )
-        except:
+        except Exception:
             try:
                 config_repository = self.org.get_repo(".github")
                 return yaml.safe_load(
                     config_repository.get_contents("organizer.yaml").decoded_content
                 )
-            except:
+            except Exception:
                 return False
 
     def get_repositories(self):
@@ -204,7 +198,7 @@ class OrganizerRepository:
             #     pass
             try:
                 self.repository.edit(default_branch=branch)
-            except:
+            except Exception:
                 pass
 
     def get_labels(self):
@@ -359,72 +353,71 @@ class OrganizerRepository:
         else:
             self.repository.disable_automated_security_fixes()
 
-    def get_projects(self):
-        for project in self.ghrep.projects():
-            yield Project(self.client, project, self.organization)
+    # def get_projects(self):
+    #     for project in self.ghrep.projects():
+    #         yield Project(self.client, project, self.organization)
 
-    def get_project_by_name(self, name):
-        @cache.cache(expire=CACHE_MEDIUM)
-        def repo_get_project_id_from_name(repo, name):
-            for project in repo.get_projects():
-                if project.name == name:
-                    return project.id
-            return False
+    # def get_project_by_name(self, name):
+    #     def repo_get_project_id_from_name(repo, name):
+    #         for project in repo.get_projects():
+    #             if project.name == name:
+    #                 return project.id
+    #         return False
 
-        id = repo_get_project_id_from_name(self, name)
-        if not id:
-            return False
-        return Project(self.client, self.ghrep.project(id), self.organization)
+    #     id = repo_get_project_id_from_name(self, name)
+    #     if not id:
+    #         return False
+    #     return Project(self.client, self.ghrep.project(id), self.organization)
 
-    def get_issues(self):
-        for issue in self.ghrep.issues(state="Open"):
-            yield issue
+    # def get_issues(self):
+    #     for issue in self.ghrep.issues(state="Open"):
+    #         yield issue
 
-    def get_issue(self, issue_id):
-        return self.ghrep.issue(issue_id)
+    # def get_issue(self, issue_id):
+    #     return self.ghrep.issue(issue_id)
 
-    def get_autoassign_project(self):
-        organizer_settings = self.get_organizer_settings()
-        if not organizer_settings:
-            return False
-        if not "issues" in organizer_settings:
-            return False
-        if not "project_autoassign" in organizer_settings["issues"]:
-            return False
-        autoassign = organizer_settings["issues"]["project_autoassign"]
-        if autoassign["organization"]:
-            return self.organization.get_project_by_name(autoassign["name"])
-        if autoassign["repository"]:
-            return self.organization.get_repository(
-                autoassign["repository"]
-            ).get_project_by_name(autoassign["name"])
-        return self.get_project_by_name(autoassign["name"])
+    # def get_autoassign_project(self):
+    #     organizer_settings = self.get_organizer_settings()
+    #     if not organizer_settings:
+    #         return False
+    #     if not "issues" in organizer_settings:
+    #         return False
+    #     if not "project_autoassign" in organizer_settings["issues"]:
+    #         return False
+    #     autoassign = organizer_settings["issues"]["project_autoassign"]
+    #     if autoassign["organization"]:
+    #         return self.organization.get_project_by_name(autoassign["name"])
+    #     if autoassign["repository"]:
+    #         return self.organization.get_repository(
+    #             autoassign["repository"]
+    #         ).get_project_by_name(autoassign["name"])
+    #     return self.get_project_by_name(autoassign["name"])
 
-    def get_autoassign_column(self):
-        organizer_settings = self.get_organizer_settings()
-        project = self.get_autoassign_project()
-        if not project:
-            return False
-        return project.get_column_by_name(
-            organizer_settings["issues"]["project_autoassign"]["column"]
-        )
+    # def get_autoassign_column(self):
+    #     organizer_settings = self.get_organizer_settings()
+    #     project = self.get_autoassign_project()
+    #     if not project:
+    #         return False
+    #     return project.get_column_by_name(
+    #         organizer_settings["issues"]["project_autoassign"]["column"]
+    #     )
 
-    def get_autoassign_labels(self):
-        organizer_settings = self.get_organizer_settings()
-        if (
-            "issues" in organizer_settings
-            and "auto_label" in organizer_settings["issues"]
-        ):
-            labels = set(organizer_settings["issues"]["auto_label"])
-        else:
-            labels = set([])
-        if "labels" in self.organization.configuration:
-            for label in self.organization.configuration["labels"]:
-                if "repos" in label and self.name in label["repos"]:
-                    labels.add(label["name"])
-        if len(labels) > 0:
-            return labels
-        return False
+    # def get_autoassign_labels(self):
+    #     organizer_settings = self.get_organizer_settings()
+    #     if (
+    #         "issues" in organizer_settings
+    #         and "auto_label" in organizer_settings["issues"]
+    #     ):
+    #         labels = set(organizer_settings["issues"]["auto_label"])
+    #     else:
+    #         labels = set([])
+    #     if "labels" in self.organization.configuration:
+    #         for label in self.organization.configuration["labels"]:
+    #             if "repos" in label and self.name in label["repos"]:
+    #                 labels.add(label["name"])
+    #     if len(labels) > 0:
+    #         return labels
+    #     return False
 
     def create_branch(self, branch_name):
         current_default_branch = self.repository.get_branch(
@@ -545,38 +538,38 @@ class OrganizerRepository:
             )
 
 
-class OrganizerProject:
-    def __repr__(self):
-        return "OrganizerProject %s" % self.id
+# class OrganizerProject:
+#     def __repr__(self):
+#         return "OrganizerProject %s" % self.id
 
-    def __str__(self):
-        return self.__repr__()
+#     def __str__(self):
+#         return self.__repr__()
 
-    def __init__(self, client, project, organization):
-        self.client = client
-        self.ghproject = project
-        self.organization = organization
-        self.id = project.id
-        self.name = project.name
+#     def __init__(self, client, project, organization):
+#         self.client = client
+#         self.ghproject = project
+#         self.organization = organization
+#         self.id = project.id
+#         self.name = project.name
 
-    def get_column(self, id):
-        return self.ghproject.column(id)
+#     def get_column(self, id):
+#         return self.ghproject.column(id)
 
-    def get_columns(self):
-        for column in self.ghproject.columns():
-            yield column
+#     def get_columns(self):
+#         for column in self.ghproject.columns():
+#             yield column
 
-    def get_column_by_name(self, name):
-        def get_column_id_from_name(project, name):
-            for column in project.get_columns():
-                if column.name == name:
-                    return column.id
-            return False
+#     def get_column_by_name(self, name):
+#         def get_column_id_from_name(project, name):
+#             for column in project.get_columns():
+#                 if column.name == name:
+#                     return column.id
+#             return False
 
-        id = get_column_id_from_name(self, name)
-        if not id:
-            return False
-        return self.get_column(id)
+#         id = get_column_id_from_name(self, name)
+#         if not id:
+#             return False
+#         return self.get_column(id)
 
 
 def label_matches(config_label, label):

@@ -25,7 +25,7 @@ def update_repository_security_settings(org_name, repo_name):
     repo.update_security_scanning()
 
 
-def update_repo_branch_protection(org: OrganizerOrganization, repo_name: str):
+def update_org_repo_branch_protection(org: OrganizerOrganization, repo_name: str):
     print(
         f"Updating the branch protection settings of repository {org.name}/{repo_name}"
     )

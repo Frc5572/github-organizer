@@ -1,21 +1,16 @@
-import os
-import random
-import string
-
 import click
 import yaml
 
 from models.gh import OrganizerOrganization
 from services.github import gh
 from services.tasks import (
+    update_org_repo_branch_protection,
     update_repo_branch_protection,
     update_repository_default_branch,
     update_repository_labels,
     update_repository_security_settings,
     update_repository_settings,
 )
-
-CONFIG = None
 
 
 @click.group()
@@ -30,14 +25,15 @@ def cli(ctx, config):
     if ctx.parent:
         print(ctx.parent.get_help())
     if config:
-        with open("config.yml", "r") as file:
-            CONFIG = yaml.safe_load(file)
+        with open(config, "r") as file:
+            ctx.global_config = yaml.safe_load(file)
 
 
 @cli.command(short_help="List the settings for an organization or repository")
 @click.argument("organization")
 @click.argument("repository", required=False)
-def settings(organization, repository):
+@click.pass_context
+def settings(ctx, organization, repository):
     org = OrganizerOrganization(gh.get_organization(organization))
     if repository:
         repo = org.get_repository(repository)
@@ -140,7 +136,7 @@ def list_repos(organization):
 def update_branch_protection(organization, repository):
     org = OrganizerOrganization(gh.get_organization(organization))
     if repository:
-        update_repo_branch_protection(org, repository)
+        update_org_repo_branch_protection(org, repository)
     else:
         for repo in org.get_repositories():
             update_repo_branch_protection(repo)

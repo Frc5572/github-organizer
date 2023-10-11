@@ -1,10 +1,5 @@
-import base64
-import datetime
-import json
 import os
 
-import requests
-import yaml
 from github import Auth, Github
 
 # using an access token
