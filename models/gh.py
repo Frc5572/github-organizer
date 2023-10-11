@@ -6,6 +6,7 @@ from copy import copy
 
 import requests
 import yaml
+
 # import githuborganizer.config as config
 # from githuborganizer import cache
 # from github3apps import GithubApp
@@ -13,13 +14,14 @@ from github import Branch, Organization, Repository
 from github.GithubException import GithubException
 from github.GithubObject import NotSet, is_undefined
 
-DEFAULT_LABEL_COLOR = '000000'
-CACHE_SHORT = 5 * 60 # Five minutes
-CACHE_MEDIUM = 60 * 60 # One hour
-CACHE_LONG = 24 * 60 * 60 # One day
+DEFAULT_LABEL_COLOR = "000000"
+CACHE_SHORT = 5 * 60  # Five minutes
+CACHE_MEDIUM = 60 * 60  # One hour
+CACHE_LONG = 24 * 60 * 60  # One day
+
 
 def issue_has_projects(installation, organization, repository, issue):
-    query = '''
+    query = """
     {
       repository(owner:"%s", name:"%s") {
         issue(number:%s) {
@@ -33,34 +35,37 @@ def issue_has_projects(installation, organization, repository, issue):
         }
       }
     }
-    ''' % (organization, repository, issue)
-    results = installation.graphql({'query': query})
-    return len(results['data']['repository']['issue']['projectCards']['edges']) > 0
+    """ % (
+        organization,
+        repository,
+        issue,
+    )
+    results = installation.graphql({"query": query})
+    return len(results["data"]["repository"]["issue"]["projectCards"]["edges"]) > 0
 
 
 def team_has_repositories(installation, team):
     # GET /teams/:team_id/repos
     results = installation.rest(
-        'get',
-        'teams/%s/repos' % (team.id),
+        "get",
+        "teams/%s/repos" % (team.id),
         payload=False,
-        accepts=['application/vnd.github.hellcat-preview+json']
+        accepts=["application/vnd.github.hellcat-preview+json"],
     )
     repositories = {}
     for repo in results:
-        repositories[repo['name']] = []
-        for permission in repo['permissions']:
-            if repo['permissions'][permission]:
-                repositories[repo['name']].append(permission)
+        repositories[repo["name"]] = []
+        for permission in repo["permissions"]:
+            if repo["permissions"][permission]:
+                repositories[repo["name"]].append(permission)
     return repositories
 
 
-class OrganizerOrganization():
-
+class OrganizerOrganization:
     configuration = None
 
     def __repr__(self):
-        return 'OrganizerOrganization %s' % self.name
+        return "OrganizerOrganization %s" % self.name
 
     def __str__(self):
         return self.__repr__()
@@ -77,37 +82,42 @@ class OrganizerOrganization():
             return OrganizerRepository(self, repo)
         except:
             return None
-        
+
     def get_configuration(self):
         if self.configuration is not None:
             return self.configuration
         try:
-            config_repository = self.org.get_repo('.github')
-            return yaml.safe_load(config_repository.get_contents('organizer.yaml').decoded_content)
+            config_repository = self.org.get_repo(".github")
+            return yaml.safe_load(
+                config_repository.get_contents("organizer.yaml").decoded_content
+            )
         except:
             try:
-                config_repository = self.org.get_repo('.github')
-                return yaml.safe_load(config_repository.get_contents('organizer.yaml').decoded_content)
+                config_repository = self.org.get_repo(".github")
+                return yaml.safe_load(
+                    config_repository.get_contents("organizer.yaml").decoded_content
+                )
             except:
                 return False
-            
 
     def get_repositories(self):
         for repository in self.org.get_repos():
-            if 'exclude_repositories' in self.configuration:
-                if repository.name in self.configuration['exclude_repositories']:
+            if "exclude_repositories" in self.configuration:
+                if repository.name in self.configuration["exclude_repositories"]:
                     continue
-            if self.configuration.get('exclude_forks', False) and repository.fork:
+            if self.configuration.get("exclude_forks", False) and repository.fork:
                 continue
-            if self.configuration.get('exclude_archived', False) and repository.archived:
+            if (
+                self.configuration.get("exclude_archived", False)
+                and repository.archived
+            ):
                 continue
             yield OrganizerRepository(self, repository)
 
 
-class OrganizerRepository():
-
+class OrganizerRepository:
     def __repr__(self):
-        return 'OrganizerRepository %s/%s' % (self.organization.name, self.name)
+        return "OrganizerRepository %s/%s" % (self.organization.name, self.name)
 
     def __str__(self):
         return self.__repr__()
@@ -118,40 +128,67 @@ class OrganizerRepository():
         self.name = repo.name
         self._settings = None
 
-
     def update_settings(self):
         organizer_settings = self.get_organizer_settings()
         self.repository.edit(
-            has_issues = organizer_settings.get('features', {}).get('has_issues', NotSet),
-            has_projects = organizer_settings.get('features', {}).get('has_projects', NotSet),
-            has_wiki = organizer_settings.get('features', {}).get('has_wiki', NotSet),
-            allow_forking = organizer_settings.get('features', {}).get('allow_forking', NotSet),
-            web_commit_signoff_required = organizer_settings.get('features', {}).get('web_commit_signoff_required', NotSet),
+            has_issues=organizer_settings.get("features", {}).get("has_issues", NotSet),
+            has_projects=organizer_settings.get("features", {}).get(
+                "has_projects", NotSet
+            ),
+            has_wiki=organizer_settings.get("features", {}).get("has_wiki", NotSet),
+            allow_forking=organizer_settings.get("features", {}).get(
+                "allow_forking", NotSet
+            ),
+            web_commit_signoff_required=organizer_settings.get("features", {}).get(
+                "web_commit_signoff_required", NotSet
+            ),
             # has_downloads = organizer_settings.get('features', {}).get('has_downloads', NotSet),
-            allow_squash_merge = organizer_settings.get('merges', {}).get('allow_squash_merge', NotSet),
-            allow_merge_commit = organizer_settings.get('merges', {}).get('allow_merge_commit', NotSet),
-            allow_rebase_merge = organizer_settings.get('merges', {}).get('allow_rebase_merge', NotSet),
-            allow_auto_merge = organizer_settings.get('merges', {}).get('allow_auto_merge', NotSet),
-            delete_branch_on_merge = organizer_settings.get('merges', {}).get('delete_branch_on_merge', NotSet),
-            allow_update_branch = organizer_settings.get('merges', {}).get('allow_update_branch', NotSet),
-            use_squash_pr_title_as_default = organizer_settings.get('merges', {}).get('use_squash_pr_title_as_default', NotSet),
-            squash_merge_commit_title = organizer_settings.get('merges', {}).get('squash_merge_commit_title', NotSet),
-            squash_merge_commit_message = organizer_settings.get('merges', {}).get('squash_merge_commit_message', NotSet),
-            merge_commit_title = organizer_settings.get('merges', {}).get('merge_commit_title', NotSet),
-            merge_commit_message = organizer_settings.get('merges', {}).get('merge_commit_message', NotSet),
+            allow_squash_merge=organizer_settings.get("merges", {}).get(
+                "allow_squash_merge", NotSet
+            ),
+            allow_merge_commit=organizer_settings.get("merges", {}).get(
+                "allow_merge_commit", NotSet
+            ),
+            allow_rebase_merge=organizer_settings.get("merges", {}).get(
+                "allow_rebase_merge", NotSet
+            ),
+            allow_auto_merge=organizer_settings.get("merges", {}).get(
+                "allow_auto_merge", NotSet
+            ),
+            delete_branch_on_merge=organizer_settings.get("merges", {}).get(
+                "delete_branch_on_merge", NotSet
+            ),
+            allow_update_branch=organizer_settings.get("merges", {}).get(
+                "allow_update_branch", NotSet
+            ),
+            use_squash_pr_title_as_default=organizer_settings.get("merges", {}).get(
+                "use_squash_pr_title_as_default", NotSet
+            ),
+            squash_merge_commit_title=organizer_settings.get("merges", {}).get(
+                "squash_merge_commit_title", NotSet
+            ),
+            squash_merge_commit_message=organizer_settings.get("merges", {}).get(
+                "squash_merge_commit_message", NotSet
+            ),
+            merge_commit_title=organizer_settings.get("merges", {}).get(
+                "merge_commit_title", NotSet
+            ),
+            merge_commit_message=organizer_settings.get("merges", {}).get(
+                "merge_commit_message", NotSet
+            ),
         )
 
     def update_default_branch(self):
         org_settings = self.get_organizer_settings()
-        if 'branches' not in org_settings:
+        if "branches" not in org_settings:
             return
 
         # If this repo is a fork then leave it alone.
         if self.repository.source:
             return
 
-        for branch in org_settings['branches']:
-            settings = org_settings['branches'][branch]
+        for branch in org_settings["branches"]:
+            settings = org_settings["branches"][branch]
             if "default" not in settings:
                 continue
             if not settings["default"]:
@@ -170,20 +207,16 @@ class OrganizerRepository():
             except:
                 pass
 
-
-
     def get_labels(self):
         labels = {}
         for label in self.repository.get_labels():
             labels[label.name] = label
         return labels
 
-
     def get_topics(self):
         return self.repository.get_topics()
 
-
-    def get_organizer_settings(self, name = False, maxdepth = 5):
+    def get_organizer_settings(self, name=False, maxdepth=5):
         if self._settings is not None:
             return self._settings
         topic_assignment = False
@@ -195,109 +228,124 @@ class OrganizerRepository():
 
         if not self.organization.configuration:
             return False
-        elif 'repositories' not in self.organization.configuration:
-            '''Convert from the old style configuration to the current version'''
+        elif "repositories" not in self.organization.configuration:
+            """Convert from the old style configuration to the current version"""
             settings = copy(self.organization.configuration)
-            settings['merges'] = {}
-            settings['features'] = {}
-            if 'labels' in settings:
-                del settings['labels']
-            for feature in ['has_issues', 'has_wiki', 'has_downloads', 'has_projects']:
+            settings["merges"] = {}
+            settings["features"] = {}
+            if "labels" in settings:
+                del settings["labels"]
+            for feature in ["has_issues", "has_wiki", "has_downloads", "has_projects"]:
                 if feature in settings:
-                    settings['features'][feature] = settings[feature]
+                    settings["features"][feature] = settings[feature]
                     del settings[feature]
-            for merge in ['allow_rebase_merge', 'allow_squash_merge', 'allow_merge_commit']:
+            for merge in [
+                "allow_rebase_merge",
+                "allow_squash_merge",
+                "allow_merge_commit",
+            ]:
                 if merge in settings:
-                    settings['merges'][merge] = settings[merge]
+                    settings["merges"][merge] = settings[merge]
                     del settings[merge]
             return settings
-        elif name and name in self.organization.configuration['repositories']:
-            settings = self.organization.configuration['repositories'][name]
-        elif topic_assignment and topic_assignment in self.organization.configuration['repositories']:
-            settings = self.organization.configuration['repositories'][topic_assignment]
-        elif not name and self.name in self.organization.configuration['repositories']:
-            settings = self.organization.configuration['repositories'][self.name]
-        elif 'default' in self.organization.configuration['repositories']:
-            settings = self.organization.configuration['repositories']['default']
+        elif name and name in self.organization.configuration["repositories"]:
+            settings = self.organization.configuration["repositories"][name]
+        elif (
+            topic_assignment
+            and topic_assignment in self.organization.configuration["repositories"]
+        ):
+            settings = self.organization.configuration["repositories"][topic_assignment]
+        elif not name and self.name in self.organization.configuration["repositories"]:
+            settings = self.organization.configuration["repositories"][self.name]
+        elif "default" in self.organization.configuration["repositories"]:
+            settings = self.organization.configuration["repositories"]["default"]
         if not settings:
             return False
 
         if isinstance(settings, str):
-            settings = {'extends':settings}
+            settings = {"extends": settings}
 
-        if 'extends' in settings and maxdepth > 0:
-            parent = self.get_organizer_settings(name=settings['extends'], maxdepth=maxdepth-1)
+        if "extends" in settings and maxdepth > 0:
+            parent = self.get_organizer_settings(
+                name=settings["extends"], maxdepth=maxdepth - 1
+            )
             if parent:
                 parent.update(settings)
                 settings = parent
-            del settings['extends']
+            del settings["extends"]
 
         self._settings = settings
         return settings
 
     def update_labels(self):
-
-        current_labels = self.get_labels() #[x.name for x in self.ghrep.labels()]
+        current_labels = self.get_labels()  # [x.name for x in self.ghrep.labels()]
 
         # Remove any labels not in the configuration
-        if self.organization.configuration.get('labels_clean', False):
-            label_names = [x['name'] for x in self.organization.configuration.get('labels', [])]
+        if self.organization.configuration.get("labels_clean", False):
+            label_names = [
+                x["name"] for x in self.organization.configuration.get("labels", [])
+            ]
             for active_label in self.repository.get_labels():
                 if active_label.name not in label_names:
                     active_label.delete()
 
-        for config_label in self.organization.configuration.get('labels', []):
-            if config_label.get('old_name'):
-                label_object = self.repository.get_label(config_label['old_name'])
+        for config_label in self.organization.configuration.get("labels", []):
+            if config_label.get("old_name"):
+                label_object = self.repository.get_label(config_label["old_name"])
                 if label_object:
                     label_object.edit(
-                        config_label['name'],
-                        config_label.get('color', DEFAULT_LABEL_COLOR),
-                        config_label.get('description', NotSet))
+                        config_label["name"],
+                        config_label.get("color", DEFAULT_LABEL_COLOR),
+                        config_label.get("description", NotSet),
+                    )
                     continue
 
-            if config_label['name'] in current_labels:
-                label_object = current_labels[config_label['name']] #self.ghrep.label(config_label['name'])
+            if config_label["name"] in current_labels:
+                label_object = current_labels[
+                    config_label["name"]
+                ]  # self.ghrep.label(config_label['name'])
                 if not label_matches(config_label, label_object):
                     label_object.edit(
-                        config_label['name'],
-                        config_label.get('color', DEFAULT_LABEL_COLOR),
-                        config_label.get('description', None))
+                        config_label["name"],
+                        config_label.get("color", DEFAULT_LABEL_COLOR),
+                        config_label.get("description", None),
+                    )
             else:
                 self.repository.create_label(
-                    config_label['name'],
-                    config_label.get('color', DEFAULT_LABEL_COLOR),
-                    config_label.get('description', NotSet))
+                    config_label["name"],
+                    config_label.get("color", DEFAULT_LABEL_COLOR),
+                    config_label.get("description", NotSet),
+                )
 
     def update_issues(self):
         organizer_settings = self.get_organizer_settings()
         if not organizer_settings:
             return False
-        if 'auto_assign_project' not in organizer_settings['issues']:
+        if "auto_assign_project" not in organizer_settings["issues"]:
             return False
 
-        issue_config = organizer_settings['issues']
+        issue_config = organizer_settings["issues"]
 
-        if 'organization' in issue_config:
-            project = self.organization.ghorg.project(issue_config['name'])
+        if "organization" in issue_config:
+            project = self.organization.ghorg.project(issue_config["name"])
         else:
-            project = self.ghrep.project(issue_config['name'])
-        project_column = project.column(issue_config['column'])
+            project = self.ghrep.project(issue_config["name"])
+        project_column = project.column(issue_config["column"])
 
-        for issue in self.ghrep.issues(state='open', sort='created', direction='asc'):
+        for issue in self.ghrep.issues(state="open", sort="created", direction="asc"):
             project_column.create_card_with_issue(issue)
 
     def update_security_scanning(self):
         organizer_settings = self.get_organizer_settings()
         if not organizer_settings:
             return False
-        if 'dependency_security' not in organizer_settings:
+        if "dependency_security" not in organizer_settings:
             return False
-        sec = organizer_settings['dependency_security']
-        if 'alerts' in sec:
-            self.toggle_vulnerability_alerts(sec['alerts'])
-        if 'automatic_fixes' in sec:
-            self.toggle_security_fixes(sec['automatic_fixes'])
+        sec = organizer_settings["dependency_security"]
+        if "alerts" in sec:
+            self.toggle_vulnerability_alerts(sec["alerts"])
+        if "automatic_fixes" in sec:
+            self.toggle_security_fixes(sec["automatic_fixes"])
 
     def toggle_vulnerability_alerts(self, enable):
         if enable:
@@ -322,13 +370,14 @@ class OrganizerRepository():
                 if project.name == name:
                     return project.id
             return False
+
         id = repo_get_project_id_from_name(self, name)
         if not id:
             return False
         return Project(self.client, self.ghrep.project(id), self.organization)
 
     def get_issues(self):
-        for issue in self.ghrep.issues(state = 'Open'):
+        for issue in self.ghrep.issues(state="Open"):
             yield issue
 
     def get_issue(self, issue_id):
@@ -338,71 +387,81 @@ class OrganizerRepository():
         organizer_settings = self.get_organizer_settings()
         if not organizer_settings:
             return False
-        if not 'issues' in organizer_settings:
+        if not "issues" in organizer_settings:
             return False
-        if not 'project_autoassign' in organizer_settings['issues']:
+        if not "project_autoassign" in organizer_settings["issues"]:
             return False
-        autoassign = organizer_settings['issues']['project_autoassign']
-        if autoassign['organization']:
-            return self.organization.get_project_by_name(autoassign['name'])
-        if autoassign['repository']:
-            return self.organization.get_repository(autoassign['repository']).get_project_by_name(autoassign['name'])
-        return self.get_project_by_name(autoassign['name'])
+        autoassign = organizer_settings["issues"]["project_autoassign"]
+        if autoassign["organization"]:
+            return self.organization.get_project_by_name(autoassign["name"])
+        if autoassign["repository"]:
+            return self.organization.get_repository(
+                autoassign["repository"]
+            ).get_project_by_name(autoassign["name"])
+        return self.get_project_by_name(autoassign["name"])
 
     def get_autoassign_column(self):
         organizer_settings = self.get_organizer_settings()
         project = self.get_autoassign_project()
         if not project:
             return False
-        return project.get_column_by_name(organizer_settings['issues']['project_autoassign']['column'])
+        return project.get_column_by_name(
+            organizer_settings["issues"]["project_autoassign"]["column"]
+        )
 
     def get_autoassign_labels(self):
         organizer_settings = self.get_organizer_settings()
-        if 'issues' in organizer_settings and 'auto_label' in organizer_settings['issues']:
-            labels = set(organizer_settings['issues']['auto_label'])
+        if (
+            "issues" in organizer_settings
+            and "auto_label" in organizer_settings["issues"]
+        ):
+            labels = set(organizer_settings["issues"]["auto_label"])
         else:
             labels = set([])
-        if 'labels' in self.organization.configuration:
-            for label in self.organization.configuration['labels']:
-                if 'repos' in label and self.name in label['repos']:
-                    labels.add(label['name'])
+        if "labels" in self.organization.configuration:
+            for label in self.organization.configuration["labels"]:
+                if "repos" in label and self.name in label["repos"]:
+                    labels.add(label["name"])
         if len(labels) > 0:
             return labels
         return False
 
     def create_branch(self, branch_name):
-        current_default_branch = self.repository.get_branch(self.repository.default_branch)
-        self.repository.create_branch_ref(branch_name, current_default_branch.latest_sha())
-    
+        current_default_branch = self.repository.get_branch(
+            self.repository.default_branch
+        )
+        self.repository.create_branch_ref(
+            branch_name, current_default_branch.latest_sha()
+        )
+
     def branch_protection(
         self,
         branch: Branch,
-        required_status_checks = None,
+        required_status_checks=None,
         enforce_admins: bool = True,
         require_review: bool = True,
-        restrictions = None,
+        restrictions=None,
         required_linear_history: bool = NotSet,
         allow_force_pushes: bool = NotSet,
         required_approving_review_count: int = NotSet,
         require_code_owner_reviews: bool = NotSet,
         dismiss_stale_reviews: bool = NotSet,
-        dismissal_restrictions = NotSet,
-        bypass_restrictions = NotSet,
+        dismissal_restrictions=NotSet,
+        bypass_restrictions=NotSet,
         lock_branch: bool = NotSet,
         allow_fork_syncing: bool = NotSet,
         block_creations: bool = NotSet,
         required_conversation_resolution: bool = NotSet,
-        allow_deletions: bool = False
-        ):
-
+        allow_deletions: bool = False,
+    ):
         # required_status_checks
         # - strict - boolean
         # - contexts - array, leave empty for "all"
         if required_status_checks:
-            if 'contexts' not in required_status_checks:
-                required_status_checks['contexts'] = []
-            if 'strict' not in required_status_checks:
-                required_status_checks['strict'] = False
+            if "contexts" not in required_status_checks:
+                required_status_checks["contexts"] = []
+            if "strict" not in required_status_checks:
+                required_status_checks["strict"] = False
 
         # enforce_admins - boolean
         enforce_admins = bool(enforce_admins)
@@ -414,11 +473,15 @@ class OrganizerRepository():
         # - dismiss_stale_reviews - boolean
         # - require_code_owner_reviews - boolean
         # - required_approving_review_count - integer
-        if not require_review and not required_status_checks.get("require_review", False):
+        if not require_review and not required_status_checks.get(
+            "require_review", False
+        ):
             try:
                 branch.remove_protection()
             except GithubException as exception:
-                print(f"Error updating branch protections for {branch.name}: {exception}")
+                print(
+                    f"Error updating branch protections for {branch.name}: {exception}"
+                )
             return
 
         # dismissal_restrictions
@@ -426,7 +489,7 @@ class OrganizerRepository():
         # - teams - array
         # - apps - array
         if dismissal_restrictions:
-            for field in ['users', 'teams', 'apps']:
+            for field in ["users", "teams", "apps"]:
                 if field not in dismissal_restrictions:
                     dismissal_restrictions[field] = []
         # bypass_restrictions
@@ -434,7 +497,7 @@ class OrganizerRepository():
         # - teams - array
         # - apps - array
         if bypass_restrictions:
-            for field in ['users', 'teams', 'apps']:
+            for field in ["users", "teams", "apps"]:
                 if field not in bypass_restrictions:
                     bypass_restrictions[field] = []
         # restrictions
@@ -442,44 +505,49 @@ class OrganizerRepository():
         # - teams - array
         # - apps - array
         if restrictions:
-            for field in ['users', 'teams', 'apps']:
+            for field in ["users", "teams", "apps"]:
                 if field not in restrictions:
                     restrictions[field] = []
         try:
             branch.edit_protection(
-                strict = required_status_checks.get("strict", NotSet),
-                contexts = required_status_checks.get("contexts", NotSet),
-                enforce_admins = enforce_admins,
-                user_push_restrictions = restrictions.get("users", NotSet),
-                team_push_restrictions = restrictions.get("teams", NotSet),
-                app_push_restrictions = restrictions.get("apps", NotSet),
-                dismissal_users = dismissal_restrictions.get("users", NotSet),
-                dismissal_teams = dismissal_restrictions.get("teams", NotSet),
-                dismissal_apps = dismissal_restrictions.get("apps", NotSet),
-                users_bypass_pull_request_allowances = bypass_restrictions.get("users", NotSet),
-                teams_bypass_pull_request_allowances = bypass_restrictions.get("teams", NotSet),
-                apps_bypass_pull_request_allowances = bypass_restrictions.get("apps", NotSet),
-
-
-
-                dismiss_stale_reviews = dismiss_stale_reviews,
-                require_code_owner_reviews = require_code_owner_reviews,
-                required_approving_review_count = required_approving_review_count,
-                required_linear_history = required_linear_history,
-                allow_force_pushes = allow_force_pushes,
-                lock_branch = lock_branch,
-                allow_fork_syncing = allow_fork_syncing,
-                block_creations = block_creations,
-                required_conversation_resolution = required_conversation_resolution
+                strict=required_status_checks.get("strict", NotSet),
+                contexts=required_status_checks.get("contexts", NotSet),
+                enforce_admins=enforce_admins,
+                user_push_restrictions=restrictions.get("users", NotSet),
+                team_push_restrictions=restrictions.get("teams", NotSet),
+                app_push_restrictions=restrictions.get("apps", NotSet),
+                dismissal_users=dismissal_restrictions.get("users", NotSet),
+                dismissal_teams=dismissal_restrictions.get("teams", NotSet),
+                dismissal_apps=dismissal_restrictions.get("apps", NotSet),
+                users_bypass_pull_request_allowances=bypass_restrictions.get(
+                    "users", NotSet
+                ),
+                teams_bypass_pull_request_allowances=bypass_restrictions.get(
+                    "teams", NotSet
+                ),
+                apps_bypass_pull_request_allowances=bypass_restrictions.get(
+                    "apps", NotSet
+                ),
+                dismiss_stale_reviews=dismiss_stale_reviews,
+                require_code_owner_reviews=require_code_owner_reviews,
+                required_approving_review_count=required_approving_review_count,
+                required_linear_history=required_linear_history,
+                allow_force_pushes=allow_force_pushes,
+                lock_branch=lock_branch,
+                allow_fork_syncing=allow_fork_syncing,
+                block_creations=block_creations,
+                required_conversation_resolution=required_conversation_resolution
                 # allow_deletions = allow_deletions
             )
         except GithubException as exception:
-            print(f"Error updating branch protections for {branch.name}: {exception.message}")\
+            print(
+                f"Error updating branch protections for {branch.name}: {exception.message}"
+            )
+
 
 class OrganizerProject:
-
     def __repr__(self):
-        return 'OrganizerProject %s' % self.id
+        return "OrganizerProject %s" % self.id
 
     def __str__(self):
         return self.__repr__()
@@ -504,6 +572,7 @@ class OrganizerProject:
                 if column.name == name:
                     return column.id
             return False
+
         id = get_column_id_from_name(self, name)
         if not id:
             return False
@@ -511,8 +580,8 @@ class OrganizerProject:
 
 
 def label_matches(config_label, label):
-    if label.color != config_label.get('color', DEFAULT_LABEL_COLOR):
+    if label.color != config_label.get("color", DEFAULT_LABEL_COLOR):
         return False
-    if label.description != config_label.get('description', None):
+    if label.description != config_label.get("description", None):
         return False
     return True
