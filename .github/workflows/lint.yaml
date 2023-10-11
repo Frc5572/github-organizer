@@ -12,6 +12,7 @@ jobs:
       - name: Run iSort
         run: isort --extend-skip .venv/ --profile black --check-only . > isort.results
       - uses: reviewdog/action-setup@v1
+        if: always()
         with:
           reviewdog_version: latest
       - name: Run reviewdog
@@ -27,6 +28,7 @@ jobs:
       - name: Run Black
         run: black --check --extend-exclude ".venv/" . > black.results
       - uses: reviewdog/action-setup@v1
+        if: always()
         with:
           reviewdog_version: latest
       - name: Run reviewdog
@@ -42,6 +44,7 @@ jobs:
       - name: Run Flake8
         run: flake8 --extend-exclude .venv/ . > flake8.results
       - uses: reviewdog/action-setup@v1
+        if: always()
         with:
           reviewdog_version: latest
       - name: Run reviewdog
