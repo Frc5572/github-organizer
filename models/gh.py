@@ -1,3 +1,4 @@
+"""Models for Organizer"""
 from copy import copy
 
 import yaml
@@ -13,52 +14,55 @@ GLOBAL_CONFIG = None
 
 
 def update_global_config(config: dict):
-    global GLOBAL_CONFIG
+    """Update the global config when using a local file"""
+    global GLOBAL_CONFIG  # pylint: disable=global-statement
     GLOBAL_CONFIG = config
 
 
-def issue_has_projects(installation, organization, repository, issue):
-    query = """
-    {
-      repository(owner:"%s", name:"%s") {
-        issue(number:%s) {
-          projectCards (archivedStates: NOT_ARCHIVED, first: 1) {
-            edges {
-              node {
-                id
-              }
-            }
-          }
-        }
-      }
-    }
-    """ % (
-        organization,
-        repository,
-        issue,
-    )
-    results = installation.graphql({"query": query})
-    return len(results["data"]["repository"]["issue"]["projectCards"]["edges"]) > 0
+# def issue_has_projects(installation, organization, repository, issue):
+#     query = """
+#     {
+#       repository(owner:"%s", name:"%s") {
+#         issue(number:%s) {
+#           projectCards (archivedStates: NOT_ARCHIVED, first: 1) {
+#             edges {
+#               node {
+#                 id
+#               }
+#             }
+#           }
+#         }
+#       }
+#     }
+#     """ % (
+#         organization,
+#         repository,
+#         issue,
+#     )
+#     results = installation.graphql({"query": query})
+#     return len(results["data"]["repository"]["issue"]["projectCards"]["edges"]) > 0
 
 
-def team_has_repositories(installation, team):
-    # GET /teams/:team_id/repos
-    results = installation.rest(
-        "get",
-        "teams/%s/repos" % (team.id),
-        payload=False,
-        accepts=["application/vnd.github.hellcat-preview+json"],
-    )
-    repositories = {}
-    for repo in results:
-        repositories[repo["name"]] = []
-        for permission in repo["permissions"]:
-            if repo["permissions"][permission]:
-                repositories[repo["name"]].append(permission)
-    return repositories
+# def team_has_repositories(installation, team):
+#     # GET /teams/:team_id/repos
+#     results = installation.rest(
+#         "get",
+#         "teams/%s/repos" % (team.id),
+#         payload=False,
+#         accepts=["application/vnd.github.hellcat-preview+json"],
+#     )
+#     repositories = {}
+#     for repo in results:
+#         repositories[repo["name"]] = []
+#         for permission in repo["permissions"]:
+#             if repo["permissions"][permission]:
+#                 repositories[repo["name"]].append(permission)
+#     return repositories
 
 
 class OrganizerOrganization:
+    """Class to represent a Github Organization"""
+
     configuration = None
 
     def __repr__(self):
@@ -68,12 +72,14 @@ class OrganizerOrganization:
         return self.__repr__()
 
     def __init__(self, organization: Organization):
+        """Initialize Class"""
         self.org = organization
         self.configuration = self.get_configuration()
         self.name = organization.name
         self.login = organization.login
 
     def get_repository(self, name: str):
+        """Get a specific repository from the organization"""
         try:
             repo = self.org.get_repo(name)
             return OrganizerRepository(self, repo)
@@ -81,6 +87,7 @@ class OrganizerOrganization:
             return None
 
     def get_configuration(self):
+        """Get the configuration for the organization"""
         if GLOBAL_CONFIG is not None:
             self.configuration = GLOBAL_CONFIG
             return GLOBAL_CONFIG
@@ -101,6 +108,7 @@ class OrganizerOrganization:
                 return False
 
     def get_repositories(self):
+        """Get all repositories for the organizations"""
         for repository in self.org.get_repos():
             if "exclude_repositories" in self.configuration:
                 if repository.name in self.configuration["exclude_repositories"]:
@@ -116,6 +124,8 @@ class OrganizerOrganization:
 
 
 class OrganizerRepository:
+    """Class representing a GitHub Repository"""
+
     def __repr__(self):
         return "OrganizerRepository %s/%s" % (self.organization.name, self.name)
 
@@ -123,12 +133,14 @@ class OrganizerRepository:
         return self.__repr__()
 
     def __init__(self, org: OrganizerOrganization, repo: Repository):
+        """Inigtialize Class"""
         self.organization = org
         self.repository = repo
         self.name = repo.name
         self._settings = None
 
     def update_settings(self):
+        """Update General repositiroy settings"""
         organizer_settings = self.get_organizer_settings()
         self.repository.edit(
             has_issues=organizer_settings.get("features", {}).get("has_issues", NotSet),
@@ -179,6 +191,7 @@ class OrganizerRepository:
         )
 
     def update_default_branch(self):
+        """Update Default Branch for a repository"""
         org_settings = self.get_organizer_settings()
         if "branches" not in org_settings:
             return
@@ -208,15 +221,18 @@ class OrganizerRepository:
                 pass
 
     def get_labels(self):
+        """Get labels for a repository"""
         labels = {}
         for label in self.repository.get_labels():
             labels[label.name] = label
         return labels
 
     def get_topics(self):
+        """Get topics for a repository"""
         return self.repository.get_topics()
 
     def get_organizer_settings(self, name=False, maxdepth=5):
+        """Get organizaer settings for a repository"""
         if self._settings is not None:
             return self._settings
         topic_assignment = False
@@ -278,6 +294,7 @@ class OrganizerRepository:
         return settings
 
     def update_labels(self):
+        """Update labels for a repository"""
         current_labels = self.get_labels()  # [x.name for x in self.ghrep.labels()]
 
         # Remove any labels not in the configuration
@@ -336,6 +353,7 @@ class OrganizerRepository:
     #         project_column.create_card_with_issue(issue)
 
     def update_security_scanning(self):
+        """Update Security Scanning settings for a repository"""
         organizer_settings = self.get_organizer_settings()
         if not organizer_settings:
             return False
@@ -348,12 +366,14 @@ class OrganizerRepository:
             self.toggle_security_fixes(sec["automatic_fixes"])
 
     def toggle_vulnerability_alerts(self, enable):
+        """Update Vulnerability Alert settings for a repository"""
         if enable:
             self.repository.enable_vulnerability_alert()
         else:
             self.repository.disable_vulnerability_alert()
 
     def toggle_security_fixes(self, enable):
+        """Update Security Fix settings for a repository"""
         if enable:
             self.repository.enable_automated_security_fixes()
         else:
@@ -426,6 +446,7 @@ class OrganizerRepository:
     #     return False
 
     def create_branch(self, branch_name):
+        """Create a branch in a repository"""
         current_default_branch = self.repository.get_branch(
             self.repository.default_branch
         )
@@ -453,6 +474,7 @@ class OrganizerRepository:
         required_conversation_resolution: bool = NotSet,
         # allow_deletions: bool = False,
     ):
+        """Update Branch Protection settings for a repository"""
         # required_status_checks
         # - strict - boolean
         # - contexts - array, leave empty for "all"
@@ -579,6 +601,7 @@ class OrganizerRepository:
 
 
 def label_matches(config_label, label):
+    """Check if a label matches the config"""
     if label.color != config_label.get("color", DEFAULT_LABEL_COLOR):
         return False
     if label.description != config_label.get("description", None):
