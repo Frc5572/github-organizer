@@ -11,9 +11,11 @@ CACHE_MEDIUM = 60 * 60  # One hour
 CACHE_LONG = 24 * 60 * 60  # One day
 GLOBAL_CONFIG = None
 
+
 def update_global_config(config: dict):
     global GLOBAL_CONFIG
     GLOBAL_CONFIG = config
+
 
 def issue_has_projects(installation, organization, repository, issue):
     query = """
