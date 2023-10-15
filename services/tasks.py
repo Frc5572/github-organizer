@@ -1,3 +1,4 @@
+"""List of functions for the CLI"""
 from github.GithubObject import NotSet
 
 from models.gh import OrganizerOrganization, OrganizerRepository
