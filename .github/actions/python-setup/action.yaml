@@ -2,7 +2,6 @@ name: Python Setup
 runs:
   using: "composite" # <-- this is the important part
   steps:
-    - uses: actions/checkout@v4
     - name: Set up Python 3.11
       uses: actions/setup-python@v4
       with:
