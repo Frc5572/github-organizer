@@ -112,9 +112,11 @@ disable=
     consider-using-f-string,
     too-complex,
     too-many-locals,
+    too-many-arguments,
     broad-exception-caught,
     redefined-outer-name,
-    consider-using-namedtuple-or-dataclass
+    consider-using-namedtuple-or-dataclass,
+    consider-using-tuple
 
 [REPORTS]
 

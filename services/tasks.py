@@ -5,6 +5,7 @@ from services.github import gh
 
 
 def update_repository_settings(org_name, repo_name):
+    """Update General Settings for a Repository"""
     print(f"Updating the settings of repository {org_name}/{repo_name}")
     org = OrganizerOrganization(gh.get_organization(org_name))
     repo = org.get_repository(repo_name)
@@ -12,6 +13,7 @@ def update_repository_settings(org_name, repo_name):
 
 
 def update_repository_labels(org_name, repo_name):
+    """Update labels for a repository"""
     print(f"Updating the labels of repository {org_name}/{repo_name}")
     org = OrganizerOrganization(gh.get_organization(org_name))
     repo = org.get_repository(repo_name)
@@ -19,6 +21,7 @@ def update_repository_labels(org_name, repo_name):
 
 
 def update_repository_security_settings(org_name, repo_name):
+    """Update security settings for a repository"""
     print(f"Updating the security settings of repository {org_name}/{repo_name}")
     org = OrganizerOrganization(gh.get_organization(org_name))
     repo = org.get_repository(repo_name)
@@ -26,6 +29,7 @@ def update_repository_security_settings(org_name, repo_name):
 
 
 def update_org_repo_branch_protection(org: OrganizerOrganization, repo_name: str):
+    """Update Branch Protections for a repository"""
     print(
         f"Updating the branch protection settings of repository {org.name}/{repo_name}"
     )
@@ -34,6 +38,7 @@ def update_org_repo_branch_protection(org: OrganizerOrganization, repo_name: str
 
 
 def update_repo_branch_protection(repo: OrganizerRepository):
+    """Update Branch Protection settings for a repository"""
     settings = repo.get_organizer_settings()
     if "branches" not in settings:
         return
@@ -42,6 +47,7 @@ def update_repo_branch_protection(repo: OrganizerRepository):
 
 
 def update_branch_protection(repo: OrganizerRepository, branch_name: str):
+    """Update Branch Protection settings for a specific repository branch"""
     if "branches" not in repo._settings:
         return
     if branch_name not in repo._settings["branches"]:
@@ -77,6 +83,7 @@ def update_branch_protection(repo: OrganizerRepository, branch_name: str):
 
 
 def update_repository_default_branch(org: OrganizerOrganization, repo_name: str):
+    """Update the default branch for a repository"""
     print(f"Updating the default branch settings of repository {org.name}/{repo_name}")
     repo = org.get_repository(repo_name)
     repo.update_default_branch()

@@ -91,7 +91,7 @@ class OrganizerOrganization:
         if GLOBAL_CONFIG is not None:
             self.configuration = GLOBAL_CONFIG
             return GLOBAL_CONFIG
-        elif self.configuration is not None:
+        if self.configuration is not None:
             return self.configuration
         try:
             config_repository = self.org.get_repo(".github")
@@ -245,7 +245,7 @@ class OrganizerRepository:
         if not self.organization.configuration:
             return False
         if "repositories" not in self.organization.configuration:
-            """Convert from the old style configuration to the current version"""
+            # Convert from the old style configuration to the current version
             settings = copy(self.organization.configuration)
             settings["merges"] = {}
             settings["features"] = {}
@@ -264,7 +264,7 @@ class OrganizerRepository:
                     settings["merges"][merge] = settings[merge]
                     del settings[merge]
             return settings
-        elif name and name in self.organization.configuration["repositories"]:
+        if name and name in self.organization.configuration["repositories"]:
             settings = self.organization.configuration["repositories"][name]
         elif (
             topic_assignment
@@ -352,18 +352,15 @@ class OrganizerRepository:
     #     for issue in self.ghrep.issues(state="open", sort="created", direction="asc"):
     #         project_column.create_card_with_issue(issue)
 
-    def update_security_scanning(self):
+    def update_security_scanning(self) -> None:
         """Update Security Scanning settings for a repository"""
         organizer_settings = self.get_organizer_settings()
-        if not organizer_settings:
-            return False
-        if "dependency_security" not in organizer_settings:
-            return False
-        sec = organizer_settings["dependency_security"]
-        if "alerts" in sec:
-            self.toggle_vulnerability_alerts(sec["alerts"])
-        if "automatic_fixes" in sec:
-            self.toggle_security_fixes(sec["automatic_fixes"])
+        if organizer_settings and "dependency_security" not in organizer_settings:
+            sec = organizer_settings["dependency_security"]
+            if "alerts" in sec:
+                self.toggle_vulnerability_alerts(sec["alerts"])
+            if "automatic_fixes" in sec:
+                self.toggle_security_fixes(sec["automatic_fixes"])
 
     def toggle_vulnerability_alerts(self, enable):
         """Update Vulnerability Alert settings for a repository"""
