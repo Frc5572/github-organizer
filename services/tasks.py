@@ -88,3 +88,10 @@ def update_repository_default_branch(org: OrganizerOrganization, repo_name: str)
     print(f"Updating the default branch settings of repository {org.name}/{repo_name}")
     repo = org.get_repository(repo_name)
     repo.update_default_branch()
+
+
+def update_org_teams(org: OrganizerOrganization):
+    """Update teams for Organization"""
+    print(f"Updating the teams for {org.name}")
+    for team in org.get_teams():
+        team.update_members()

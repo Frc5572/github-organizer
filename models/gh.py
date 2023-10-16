@@ -2,7 +2,7 @@
 from copy import copy
 
 import yaml
-from github import Branch, Organization, Repository
+from github import Branch, NamedUser, Organization, Repository, Team
 from github.GithubException import GithubException
 from github.GithubObject import NotSet
 
@@ -121,6 +121,27 @@ class OrganizerOrganization:
             ):
                 continue
             yield OrganizerRepository(self, repository)
+
+    def update_teams(self) -> None:
+        """Update all teams in the organization"""
+        if "teams" not in self.configuration or not isinstance(
+            self.configuration["teams"], dict
+        ):
+            return None
+        for team_name, data in self.configuration["teams"]:
+            team = None
+            try:
+                team = self.org.get_team(team_name)
+            except Exception:
+                pass
+            if team is None:
+                team = self.org.create_team(
+                    name=team_name,
+                    description=data.get("description", NotSet),
+                    privacy=data.get("privacy", NotSet),
+                )
+            oteam = OrganizerTeam(self, team)
+            oteam.update_members()
 
 
 class OrganizerRepository:
@@ -488,6 +509,7 @@ class OrganizerRepository:
         # - dismissal_restrictions - object (optional)
         #   - users - array
         #   - teams - array
+        #   - apps - array
         # - dismiss_stale_reviews - boolean
         # - require_code_owner_reviews - boolean
         # - required_approving_review_count - integer
@@ -604,3 +626,41 @@ def label_matches(config_label, label):
     if label.description != config_label.get("description", None):
         return False
     return True
+
+
+class OrganizerTeam:
+    """Class representing a GitHub Team"""
+
+    def __repr__(self):
+        return "OrganizerTeam %s/%s" % (self.organization.name, self.name)
+
+    def __str__(self):
+        return self.__repr__()
+
+    def __init__(self, org: OrganizerOrganization, team: Team):
+        """Inigtialize Class"""
+        self.organization = org
+        self.team = team
+        self.name = team.name
+        self._settings = org.get_configuration()
+
+    def update_members(self):
+        # all_current_members = []
+        new = self._settings.get("teams").get(self.name).get("members", [])
+        for member in self.team.get_members():
+            if member.login not in new:
+                # all_current_members.append(member.login)
+                self.team.remove_membership(member)
+        for member in new:
+            # if member not in all_current_members:
+            username = member
+            role = "member"
+            if isinstance(member, dict):
+                username = list(member[0].keys())[0]
+                role = member.get(username).get("role", "member")
+            user = NamedUser()
+            user._login = username
+            self.team.add_membership(
+                member=user,
+                role=role,
+            )

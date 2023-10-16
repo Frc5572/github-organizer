@@ -15,3 +15,14 @@ repositories:
           strict: true
           context:
           require_review: true
+teams:
+  admins:
+    members:
+      - tedivm:
+          roll: bob
+      - bob
+
+  devs:
+    members:
+      - tedivm
+      - AliLynne
