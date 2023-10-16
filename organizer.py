@@ -1,7 +1,8 @@
+"""Module to automatically configure GitHub repositories settings"""
 import click
 import yaml
 
-from models.gh import OrganizerOrganization
+from models.gh import OrganizerOrganization, update_global_config
 from services.github import gh
 from services.tasks import (
     update_org_repo_branch_protection,
@@ -22,18 +23,20 @@ from services.tasks import (
 )
 @click.pass_context
 def cli(ctx, config):
+    """Primary intro to CLI"""
     if ctx.parent:
         print(ctx.parent.get_help())
     if config:
-        with open(config, "r") as file:
-            ctx.global_config = yaml.safe_load(file)
+        with open(config, "r", encoding="utf-8") as file:
+            update_global_config(yaml.safe_load(file))
 
 
 @cli.command(short_help="List the settings for an organization or repository")
 @click.argument("organization")
 @click.argument("repository", required=False)
 @click.pass_context
-def settings(ctx, organization, repository):
+def settings(organization, repository):
+    """Displays the settings for an Organization or Repository"""
     org = OrganizerOrganization(gh.get_organization(organization))
     if repository:
         repo = org.get_repository(repository)
@@ -49,6 +52,7 @@ def settings(ctx, organization, repository):
 @click.argument("organization")
 @click.argument("repository")
 def update_repo(organization, repository):
+    """Update settings for a single repository"""
     update_repository_settings(organization, repository)
     update_repository_labels(organization, repository)
     update_repository_security_settings(organization, repository)
@@ -80,6 +84,7 @@ def update_repo(organization, repository):
 @cli.command(short_help="List the repositories in an organization")
 @click.argument("organization")
 def list_repos(organization):
+    """List all the repositories for an Organization"""
     org = OrganizerOrganization(gh.get_organization(organization))
     for repo in org.get_repositories():
         click.echo(repo.name)
@@ -134,6 +139,7 @@ def list_repos(organization):
 @click.argument("organization")
 @click.argument("repository", required=False)
 def update_branch_protection(organization, repository):
+    """Update the branch protection rules for an Organization or single Repository"""
     org = OrganizerOrganization(gh.get_organization(organization))
     if repository:
         update_org_repo_branch_protection(org, repository)
@@ -148,6 +154,7 @@ def update_branch_protection(organization, repository):
 @click.argument("organization")
 @click.argument("repository", required=False)
 def default_branch(organization, repository):
+    """Update Default Branch for an Organization or single Repository"""
     org = OrganizerOrganization(gh.get_organization(organization))
     if repository:
         update_repository_default_branch(org, repository)
@@ -200,4 +207,4 @@ def default_branch(organization, repository):
 
 
 if __name__ == "__main__":
-    cli()
+    cli()  # pylint: disable=no-value-for-parameter

@@ -10,65 +10,37 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/python-setup
       - name: Run iSort
-        run: isort --extend-skip .venv/ --profile black --check-only . > isort.results
-      - uses: reviewdog/action-setup@v1
-        if: '!cancelled()'
-        with:
-          reviewdog_version: latest
-      - name: Run reviewdog
-        if: '!cancelled()'
         env:
           REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          cat isort.results | reviewdog -f=isort -name="ISort Results" -reporter=github-check
+          isort --extend-skip .venv/ --profile black --check-only . | reviewdog -f=isort -name="ISort Results" -reporter=github-check
   black:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/python-setup
       - name: Run Black
-        run: black --check --extend-exclude ".venv/" . > black.results
-      - uses: reviewdog/action-setup@v1
-        if: '!cancelled()'
-        with:
-          reviewdog_version: latest
-      - name: Run reviewdog
-        if: '!cancelled()'
         env:
           REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          cat black.results | reviewdog -f=black -name="Black Results" -reporter=github-check
+          black --check --extend-exclude ".venv/" . | reviewdog -f=black -name="Black Results" -reporter=github-check
   flake8:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/python-setup
       - name: Run Flake8
-        run: flake8 --extend-exclude .venv/ . > flake8.results
-      - uses: reviewdog/action-setup@v1
-        if: '!cancelled()'
-        with:
-          reviewdog_version: latest
-      - name: Run reviewdog
-        if: '!cancelled()'
         env:
           REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          cat flake8.results | reviewdog -f=flake8 -name="Flake8 Results" -reporter=github-check
+          flake8 --extend-exclude .venv/ . | reviewdog -f=flake8 -name="Flake8 Results" -reporter=github-check
   pylint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/python-setup
       - name: Run PyLint
-        run: pylint $(find -type f -name "*.py" ! -path "**/.venv/**") > pylint.results
-      - uses: reviewdog/action-setup@v1
-        if: '!cancelled()'
-        with:
-          reviewdog_version: latest
-      - name: Run reviewdog
-        if: '!cancelled()'
         env:
           REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          cat pylint.results | reviewdog -efm="%f:%l:%c: %m" -name="PyLint Results" -reporter=github-check
+          pylint $(find -type f -name "*.py" ! -path "**/.venv/**") | reviewdog -efm="%f:%l:%c: %m" -name="PyLint Results" -reporter=github-check
