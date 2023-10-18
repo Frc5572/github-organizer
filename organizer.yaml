@@ -16,13 +16,9 @@ repositories:
           context:
           require_review: true
 teams:
-  admins:
+  test:
+    description: test
+    privacy: closed
     members:
-      - tedivm:
-          roll: bob
-      - bob
-
-  devs:
-    members:
-      - tedivm
-      - AliLynne
+      - wilsonwatson:
+          role: member

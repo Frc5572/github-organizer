@@ -5,7 +5,9 @@ import yaml
 from models.gh import OrganizerOrganization, update_global_config
 from services.github import gh
 from services.tasks import (
+    update_all_organization_team_members,
     update_org_repo_branch_protection,
+    update_organization_team_members,
     update_repo_branch_protection,
     update_repository_default_branch,
     update_repository_labels,
@@ -56,6 +58,47 @@ def update_repo(organization, repository):
     update_repository_settings(organization, repository)
     update_repository_labels(organization, repository)
     update_repository_security_settings(organization, repository)
+
+
+@cli.command(short_help="Get Team Members for an entire org or single team")
+@click.argument("organization")
+@click.argument("team_name", required=False)
+def teams(organization, team_name):
+    """Get team members for an Organization or single Team"""
+    org = OrganizerOrganization(gh.get_organization(organization))
+    if team_name:
+        team = org.get_team(team_name)
+        if team:
+            click.echo(f"Team Info for: {org.login}/{team.name}")
+            click.echo(
+                yaml.dump(
+                    [{"name": x.name, "login": x.login} for x in team.get_members()],
+                    default_flow_style=False,
+                )
+            )
+        else:
+            click.echo(f"Team {org.login}/{team_name} does not exist")
+    else:
+        teams = org.get_teams_members()
+        click.echo(f"Team Info for: {org.name} ({org.login})")
+        click.echo(
+            yaml.dump(
+                teams,
+                default_flow_style=False,
+            )
+        )
+
+
+@cli.command(short_help="Update Team Members for an entire org or single team")
+@click.argument("organization")
+@click.argument("team_name", required=False)
+def update_teams(organization, team_name):
+    """Update Team Membership for all teams or specific team within an Organization"""
+    org = OrganizerOrganization(gh.get_organization(organization))
+    if team_name:
+        update_organization_team_members(org, team_name)
+    else:
+        update_all_organization_team_members(org)
 
 
 # @cli.command(short_help="Update all repositories in an organization")
@@ -177,19 +220,6 @@ def default_branch(organization, repository):
 # @click.argument('issue')
 # def label_issue(organization, repository, issue):
 #     tasks.github.label_issue(organization, repository, issue)
-
-
-# @cli.command(short_help="")
-# @click.argument('organization')
-# @click.argument('team')
-# def update_team_membership(organization, team):
-#     tasks.github.update_team_members(organization, team)
-
-
-# @cli.command(short_help="")
-# @click.argument('organization')
-# def update_org_team_membership(organization):
-#     tasks.github.update_organization_team_members(organization, synchronous=True)
 
 
 # @cli.command(short_help="")
