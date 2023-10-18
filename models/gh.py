@@ -172,12 +172,11 @@ class OrganizerOrganization:
 
     def update_teams(self) -> None:
         """Update all teams in the organization"""
-        if "teams" not in self.configuration or not isinstance(
+        if "teams" in self.configuration and isinstance(
             self.configuration["teams"], dict
         ):
-            return None
-        for team_name, data in self.configuration["teams"].items():
-            self.update_team(team_name=team_name, team_data=data)
+            for team_name, data in self.configuration["teams"].items():
+                self.update_team(team_name=team_name, team_data=data)
 
 
 class OrganizerRepository:
@@ -681,26 +680,26 @@ class OrganizerTeam:
         self._settings = org.get_configuration()
 
     def get_members(self):
+        """Get members of team"""
         members = []
         for member in self.team.get_members():
             members.append(member)
         return members
 
     def get_user(self, username) -> NamedUser:
+        """Get a Github user"""
         headers, data = self.team._requester.requestJsonAndCheck(
             "GET", f"/users/{username}"
         )
         return NamedUser.NamedUser(self.team._requester, headers, data, completed=True)
 
     def update_members(self):
-        # all_current_members = []
+        """Update members of a team"""
         new = self._settings.get("teams").get(self.name).get("members", [])
         for member in self.team.get_members():
             if member.login not in new:
-                # all_current_members.append(member.login)
                 self.team.remove_membership(member)
         for member in new:
-            # if member not in all_current_members:
             username = member
             role = "member"
             if isinstance(member, dict):
