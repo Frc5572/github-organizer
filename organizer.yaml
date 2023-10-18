@@ -15,3 +15,10 @@ repositories:
           strict: true
           context:
           require_review: true
+teams:
+  test:
+    description: test
+    privacy: closed
+    members:
+      - wilsonwatson:
+          role: member

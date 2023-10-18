@@ -88,3 +88,28 @@ def update_repository_default_branch(org: OrganizerOrganization, repo_name: str)
     print(f"Updating the default branch settings of repository {org.name}/{repo_name}")
     repo = org.get_repository(repo_name)
     repo.update_default_branch()
+
+
+def update_org_teams(org: OrganizerOrganization):
+    """Update teams for Organization"""
+    print(f"Updating the teams for {org.name}")
+    for team in org.get_teams():
+        team.update_members()
+
+
+def update_organization_team_members(org: OrganizerOrganization, team_name: str):
+    """Update Team Membership for organization"""
+    if "teams" not in org.configuration:
+        return
+    if team_name not in org.configuration["teams"]:
+        return
+    print(f"Updating Team Membership for {org.name}/{team_name}.")
+    org.update_team(team_name, org.configuration["teams"].get(team_name))
+
+
+def update_all_organization_team_members(org: OrganizerOrganization):
+    """Update Team Membership for organization"""
+    if "teams" not in org.configuration:
+        return
+    print(f"Updating Team Membership for all teams in {org.name} ({org.login}).")
+    org.update_teams()

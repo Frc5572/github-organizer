@@ -2,7 +2,7 @@
 from copy import copy
 
 import yaml
-from github import Branch, Organization, Repository
+from github import Branch, NamedUser, Organization, Repository, Team
 from github.GithubException import GithubException
 from github.GithubObject import NotSet
 
@@ -121,6 +121,62 @@ class OrganizerOrganization:
             ):
                 continue
             yield OrganizerRepository(self, repository)
+
+    def get_team(self, team_name) -> list:
+        """Get a specific team"""
+        try:
+            team = self.org.get_team_by_slug(team_name)
+            return OrganizerTeam(self, team)
+        except Exception:
+            return None
+
+    def get_teams(self):
+        """Get all teams in an org"""
+        teams = []
+        for team in self.org.get_teams():
+            teams.append(OrganizerTeam(self, team))
+        return teams
+
+    def get_teams_members(self):
+        """Get all members of all teams in an org"""
+        teams = []
+        for team in self.get_teams():
+            teams.append(
+                {
+                    "team": team.name,
+                    "members": [
+                        {"name": x.name, "login": x.login} for x in team.get_members()
+                    ],
+                }
+            )
+        return teams
+
+    def update_team(self, team_name: str, team_data: dict):
+        """Update single team within organization"""
+        team = None
+        try:
+            team = self.org.get_team_by_slug(team_name)
+            team.edit(
+                name=team_name,
+                description=team_data.get("description", NotSet),
+                privacy=team_data.get("privacy", NotSet),
+            )
+        except Exception:
+            team = self.org.create_team(
+                name=team_name,
+                description=team_data.get("description", NotSet),
+                privacy=team_data.get("privacy", NotSet),
+            )
+        oteam = OrganizerTeam(self, team)
+        oteam.update_members()
+
+    def update_teams(self) -> None:
+        """Update all teams in the organization"""
+        if "teams" in self.configuration and isinstance(
+            self.configuration["teams"], dict
+        ):
+            for team_name, data in self.configuration["teams"].items():
+                self.update_team(team_name=team_name, team_data=data)
 
 
 class OrganizerRepository:
@@ -488,6 +544,7 @@ class OrganizerRepository:
         # - dismissal_restrictions - object (optional)
         #   - users - array
         #   - teams - array
+        #   - apps - array
         # - dismiss_stale_reviews - boolean
         # - require_code_owner_reviews - boolean
         # - required_approving_review_count - integer
@@ -604,3 +661,55 @@ def label_matches(config_label, label):
     if label.description != config_label.get("description", None):
         return False
     return True
+
+
+class OrganizerTeam:
+    """Class representing a GitHub Team"""
+
+    def __repr__(self):
+        return "OrganizerTeam %s/%s" % (self.organization.name, self.name)
+
+    def __str__(self):
+        return self.__repr__()
+
+    def __init__(self, org: OrganizerOrganization, team: Team):
+        """Inigtialize Class"""
+        self.organization = org
+        self.team = team
+        self.name = team.name
+        self._settings = org.get_configuration()
+
+    def get_members(self):
+        """Get members of team"""
+        members = []
+        for member in self.team.get_members():
+            members.append(member)
+        return members
+
+    def get_user(self, username) -> NamedUser:
+        """Get a Github user"""
+        headers, data = self.team._requester.requestJsonAndCheck(
+            "GET", f"/users/{username}"
+        )
+        return NamedUser.NamedUser(self.team._requester, headers, data, completed=True)
+
+    def update_members(self):
+        """Update members of a team"""
+        new = self._settings.get("teams").get(self.name).get("members", [])
+        for member in self.team.get_members():
+            if member.login not in new:
+                self.team.remove_membership(member)
+        for member in new:
+            username = member
+            role = "member"
+            if isinstance(member, dict):
+                username = list(member.keys())[0]
+                role = member.get(username).get("role", "member")
+            try:
+                user = self.get_user(username)
+                self.team.add_membership(
+                    member=user,
+                    role=role,
+                )
+            except Exception as exception:
+                print(f"Could not add user {username}: {exception}")
